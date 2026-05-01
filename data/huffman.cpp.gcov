@@ -1,0 +1,187 @@
+        -:    0:Source:huffman.cpp
+        -:    0:Graph:huffman_cov-huffman.gcno
+        -:    0:Data:huffman_cov-huffman.gcda
+        -:    0:Runs:27
+        -:    1:#include <iostream>
+        -:    2:#include <map>
+        -:    3:#include <queue>
+        -:    4:#include <vector>
+        -:    5:#include <string>
+        -:    6:
+        -:    7:using namespace std;
+        -:    8:
+        -:    9:struct Node {
+        -:   10:    char ch;
+        -:   11:    int freq;
+        -:   12:    Node *left, *right;
+function _ZN4NodeC2Eci called 200 returned 100% blocks executed 100%
+      200:   13:    Node(char c, int f) : ch(c), freq(f), left(nullptr), right(nullptr) {}
+function _ZN4NodeC2EiPS_S0_ called 174 returned 100% blocks executed 100%
+      174:   14:    Node(int f, Node* l, Node* r) : ch('\0'), freq(f), left(l), right(r) {}
+        -:   15:};
+        -:   16:
+        -:   17:struct Compare {
+function _ZN7CompareclEP4NodeS1_ called 1192 returned 100% blocks executed 100%
+     1192:   18:    bool operator()(Node* l, Node* r) { return l->freq > r->freq; }
+        -:   19:};
+        -:   20:
+function _Z7getFreqNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE called 27 returned 100% blocks executed 90%
+       27:   21:map<char, int> getFreq(string text) {
+       27:   22:    map<char, int> freq;
+call    0 returned 27
+      772:   23:    for (char ch : text) freq[ch]++;
+call    0 returned 27
+call    1 returned 27
+call    2 returned 359
+branch  3 taken 359 (fallthrough)
+branch  4 taken 0 (throw)
+branch  5 taken 359
+branch  6 taken 27 (fallthrough)
+       27:   24:    return freq;
+    =====:   25:}
+call    0 never executed
+        -:   26:
+function _Z9buildTreeSt3mapIciSt4lessIcESaISt4pairIKciEEE called 27 returned 100% blocks executed 72%
+       27:   27:Node* buildTree(map<char, int> freq) {
+       27:   28:    priority_queue<Node*, vector<Node*>, Compare> pq;
+call    0 returned 27
+     227*:   29:    for (auto const& [ch, f] : freq) pq.push(new Node(ch, f));
+call    0 returned 27
+call    1 returned 27
+call    2 returned 200
+call    3 returned 200
+call    4 returned 200
+call    5 returned 200
+branch  6 taken 200 (fallthrough)
+branch  7 taken 0 (throw)
+call    8 returned 200
+call    9 returned 200
+branch 10 taken 200 (fallthrough)
+branch 11 taken 0 (throw)
+branch 12 taken 0 (fallthrough)
+branch 13 taken 200
+call   14 never executed
+call   15 returned 200
+call   16 returned 227
+branch 17 taken 200
+branch 18 taken 27 (fallthrough)
+branch 19 never executed (fallthrough)
+branch 20 never executed
+call   21 never executed
+       27:   30:    if (pq.empty()) return nullptr;
+call    0 returned 27
+branch  1 taken 1 (fallthrough)
+branch  2 taken 26
+      200:   31:    while (pq.size() > 1) {
+call    0 returned 200
+branch  1 taken 174
+branch  2 taken 26 (fallthrough)
+      174:   32:        Node *l = pq.top(); pq.pop();
+call    0 returned 174
+call    1 returned 174
+branch  2 taken 174 (fallthrough)
+branch  3 taken 0 (throw)
+      174:   33:        Node *r = pq.top(); pq.pop();
+call    0 returned 174
+call    1 returned 174
+branch  2 taken 174 (fallthrough)
+branch  3 taken 0 (throw)
+     174*:   34:        pq.push(new Node(l->freq + r->freq, l, r));
+call    0 returned 174
+branch  1 taken 174 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 174
+call    4 returned 174
+branch  5 taken 174 (fallthrough)
+branch  6 taken 0 (throw)
+branch  7 taken 0 (fallthrough)
+branch  8 taken 174
+call    9 never executed
+branch 10 never executed (fallthrough)
+branch 11 never executed
+call   12 never executed
+        -:   35:    }
+       26:   36:    return pq.top();
+call    0 returned 26
+       27:   37:}
+call    0 returned 27
+call    1 never executed
+        -:   38:
+function _Z6encodeP4NodeNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEERSt3mapIcS6_St4lessIcESaISt4pairIKcS6_EEE called 775 returned 100% blocks executed 75%
+      775:   39:void encode(Node* root, string str, map<char, string>& codes) {
+      775:   40:    if (!root) return;
+branch  0 taken 401 (fallthrough)
+branch  1 taken 374
+      374:   41:    if (!root->left && !root->right) codes[root->ch] = str;
+branch  0 taken 200 (fallthrough)
+branch  1 taken 174
+branch  2 taken 200 (fallthrough)
+branch  3 taken 0
+call    4 returned 200
+call    5 returned 200
+      374:   42:    encode(root->left, str + "0", codes);
+call    0 returned 374
+branch  1 taken 374 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 374
+branch  4 taken 374 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 374
+call    7 never executed
+call    8 never executed
+      374:   43:    encode(root->right, str + "1", codes);
+call    0 returned 374
+branch  1 taken 374 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 374
+branch  4 taken 374 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 374
+call    7 never executed
+        -:   44:}
+        -:   45:
+function main called 27 returned 100% blocks executed 53%
+       27:   46:int main(int argc, char* argv[]) {
+      27*:   47:    string input = (argc > 1) ? argv[1] : "test";
+branch  0 taken 27 (fallthrough)
+branch  1 taken 0
+call    2 returned 27
+branch  3 taken 27 (fallthrough)
+branch  4 taken 0 (throw)
+       27:   48:    map<char, int> freq = getFreq(input);
+call    0 returned 27
+branch  1 taken 27 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 27
+branch  4 taken 27 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 27
+call    7 never executed
+       27:   49:    Node* root = buildTree(freq);
+call    0 returned 27
+branch  1 taken 27 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 27
+branch  4 taken 27 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 27
+call    7 never executed
+       27:   50:    map<char, string> codes;
+call    0 returned 27
+       27:   51:    encode(root, "", codes);
+call    0 returned 27
+branch  1 taken 27 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 27
+branch  4 taken 27 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 27
+call    7 never executed
+       27:   52:    return 0;
+       27:   53:}
+call    0 returned 27
+call    1 returned 27
+call    2 returned 27
+call    3 never executed
+call    4 never executed
+call    5 never executed

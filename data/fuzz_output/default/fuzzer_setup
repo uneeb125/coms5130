@@ -1,0 +1,9 @@
+# environment variables:
+AFL_CUSTOM_INFO_PROGRAM=./huffman_afl
+AFL_CUSTOM_INFO_PROGRAM_ARGV=
+AFL_CUSTOM_INFO_OUT=/home/uneeb/Vault/ISU/CW/Spring2026/COMS5230/work/ProjectUpdate_1/fuzz_output/default
+AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
+AFL_TRY_AFFINITY=1
+AFL_SKIP_CPUFREQ=1
+# command line:
+'afl-fuzz' '-i' '/home/uneeb/Vault/ISU/CW/Spring2026/COMS5230/work/ProjectUpdate_1/seeds' '-o' '/home/uneeb/Vault/ISU/CW/Spring2026/COMS5230/work/ProjectUpdate_1/fuzz_output' '-V' '180' '--' './huffman_afl'

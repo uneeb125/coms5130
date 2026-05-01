@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Coverage Report &mdash; COM S 5130 Demo{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <h1>Coverage Report</h1>
+  <p class="subtitle">Dynamic analysis metrics from <code>gcov</code> and <code>AFL++</code> fuzzing.</p>
+</section>
+
+<section class="panel">
+  <h2>Per-Function Coverage</h2>
+  <table class="data-table sortable">
+    <thead>
+      <tr>
+        <th>Function</th>
+        <th>Line Cov</th>
+        <th>Branch Cov</th>
+        <th>AFL Execs</th>
+        <th>Instructions</th>
+        <th>Blocks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in functions %}
+      <tr>
+        <td><code>{{ f.name }}</code></td>
+        <td>
+          <div class="bar">
+            <div class="bar-fill" style="width: {{ f.line_cov or 0 }}%; background: #4caf50;"></div>
+            <span class="bar-label">{{ f.line_cov or 0 }}%</span>
+          </div>
+        </td>
+        <td>
+          <div class="bar">
+            <div class="bar-fill" style="width: {{ f.branch_cov or 0 }}%; background: #ff9800;"></div>
+            <span class="bar-label">{{ f.branch_cov or 0 }}%</span>
+          </div>
+        </td>
+        <td>{{ f.afl_execs or 0 }}</td>
+        <td>{{ f.total_instr or 0 }}</td>
+        <td>{{ f.blocks or 0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}COM S 5130 Demo{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo">&#9874;</span>
+      <span>COM S 5130 &mdash; Program Analysis Demo</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/">Dashboard</a></li>
+      <li><a href="/query">Query</a></li>
+      <li><a href="/graph">Call Graph</a></li>
+      <li><a href="/coverage">Coverage</a></li>
+      <li><a href="/functions">Functions</a></li>
+    </ul>
+  </nav>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <p>Static &amp; Dynamic Analysis of an AI-Generated C++ Huffman Compressor</p>
+    <p>Team: Uneeb Kamal, Talha Hassan</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='demo.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{
+  "nodes": {
+    "Function": [
+      "name",
+      "blocks",
+      "edges",
+      "loads",
+      "stores",
+      "branches",
+      "calls",
+      "icmps",
+      "geps",
+      "rets",
+      "total_instr",
+      "line_cov",
+      "branch_cov",
+      "afl_execs",
+      "invokes",
+      "landingpads",
+      "allocas",
+      "phi",
+      "select"
+    ],
+    "BasicBlock": [
+      "id",
+      "function",
+      "label"
+    ],
+    "Variable": [
+      "name"
+    ],
+    "QueryLog": [
+      "timestamp",
+      "natural_language",
+      "cypher",
+      "status",
+      "latency_ms",
+      "results_count"
+    ]
+  },
+  "relationships": {
+    "BELONGS_TO": [
+      "BasicBlock",
+      "Function"
+    ],
+    "FLOWS_TO": [
+      "BasicBlock",
+      "BasicBlock"
+    ],
+    "CALLS": [
+      "Function",
+      "Function"
+    ],
+    "DEPENDS_ON": [
+      "Variable",
+      "Variable"
+    ],
+    "GENERATED": [
+      "QueryLog",
+      "Function"
+    ]
+  }
+}

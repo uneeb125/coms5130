@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &mdash; COM S 5130 Demo{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <h1>Project Dashboard</h1>
+  <p class="subtitle">
+    Static &amp; Dynamic Analysis of an AI-Generated C++ Huffman File Compressor
+  </p>
+</section>
+
+<section class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.functions }}</div>
+    <div class="stat-label">Functions</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.blocks }}</div>
+    <div class="stat-label">Basic Blocks</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.queries }}</div>
+    <div class="stat-label">Stored Queries</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ stats.variables }}</div>
+    <div class="stat-label">Variables</div>
+  </div>
+</section>
+
+<div class="two-column">
+  <section class="panel">
+    <h2>Top Functions by Instruction Count</h2>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>Instructions</th>
+          <th>Line Cov</th>
+          <th>Branch Cov</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in top_functions %}
+        <tr>
+          <td><code>{{ f.name }}</code></td>
+          <td>{{ f.instr }}</td>
+          <td>{{ f.line_cov }}%</td>
+          <td>{{ f.branch_cov }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Recent Queries</h2>
+    {% if recent_queries %}
+    <ul class="query-list">
+      {% for q in recent_queries %}
+      <li>
+        <div class="query-nl">{{ q.natural_language }}</div>
+        <div class="query-meta">
+          <span class="badge">{{ q.status or 'OK' }}</span>
+          <span class="latency">{{ q.latency_ms or q.metadata.latency_ms }} ms</span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-state">No queries logged yet. Visit the <a href="/query">Query Interface</a> to get started.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Project Pipeline Overview</h2>
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="step-num">1</div>
+      <div class="step-title">AI Code Generation</div>
+      <div class="step-desc">C++ Huffman compressor generated via LLM prompt.</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="step-num">2</div>
+      <div class="step-title">Static Analysis</div>
+      <div class="step-desc">LLVM IR, CFGs, call graphs, and PDGs extracted.</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="step-num">3</div>
+      <div class="step-title">Dynamic Testing</div>
+      <div class="step-desc">AFL++ fuzzing + gcov coverage profiling.</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="step-num">4</div>
+      <div class="step-title">Neo4j CPG</div>
+      <div class="step-desc">All artifacts ingested into a unified graph.</div>
+    </div>
+    <div class="pipeline-arrow">&rarr;</div>
+    <div class="pipeline-step">
+      <div class="step-num">5</div>
+      <div class="step-title">NL Query Interface</div>
+      <div class="step-desc">Natural language &rarr; Cypher &rarr; Results.</div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

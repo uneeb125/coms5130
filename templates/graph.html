@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Call Graph &mdash; COM S 5130 Demo{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <h1>Inter-procedural Call Graph</h1>
+  <p class="subtitle">Visualization of CALLS edges extracted from LLVM IR via <code>opt -passes=dot-callgraph</code>.</p>
+</section>
+
+<section class="panel">
+  <div id="graph-container" style="height: 600px; border: 1px solid #ddd; border-radius: 8px;"></div>
+  <div class="graph-legend">
+    <span class="legend-item"><span class="dot" style="background:#4a90d9"></span> Function</span>
+    <span class="legend-item"><span class="line"></span> CALLS edge</span>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const container = document.getElementById('graph-container');
+  try {
+    const res = await fetch('/api/graph/calls');
+    const data = await res.json();
+
+    const nodes = new vis.DataSet(data.nodes.map(n => ({
+      id: n.id,
+      label: n.label,
+      title: `${n.label}\nInstr: ${n.total_instr}\nLine: ${n.line_cov}%\nBranch: ${n.branch_cov}%`,
+      color: {
+        background: n.line_cov >= 90 ? '#a8d5a2' : n.line_cov >= 50 ? '#f5e6a3' : '#e8a8a8',
+        border: '#4a90d9'
+      }
+    })));
+
+    const edges = new vis.DataSet(data.edges.map(e => ({
+      from: e.source,
+      to: e.target,
+      arrows: 'to'
+    })));
+
+    const network = new vis.Network(container, {nodes, edges}, {
+      layout: { hierarchical: { direction: 'UD', sortMethod: 'directed' } },
+      physics: { stabilization: false },
+      nodes: { shape: 'box', font: { face: 'monospace' } }
+    });
+  } catch (err) {
+    container.innerHTML = `<p class="empty-state">Error loading graph: ${err.message}</p>`;
+  }
+});
+</script>
+
+{% endblock %}

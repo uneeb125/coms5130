@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Query Interface &mdash; COM S 5130 Demo{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <h1>Natural-Language Query Interface</h1>
+  <p class="subtitle">Type English questions about the analyzed code. The system translates them into Cypher and runs them against the Neo4j Code Property Graph.</p>
+</section>
+
+<div class="two-column query-layout">
+  <section class="panel">
+    <h2>Ask a Question</h2>
+    <div class="input-group">
+      <input type="text" id="nl-input" placeholder="e.g. Which functions can reach encode?" autocomplete="off">
+      <button id="btn-translate" class="btn btn-primary">Translate</button>
+      <button id="btn-run" class="btn btn-success">Run Query</button>
+    </div>
+
+    <div class="examples">
+      <h3>Example Queries</h3>
+      <ul id="example-list">
+        {% for ex in examples %}
+        <li><a href="#" class="example-link">{{ ex }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div id="status-area" class="status-area"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Generated Cypher</h2>
+    <pre id="cypher-display" class="code-block">-- Cypher will appear here --</pre>
+
+    <h2>Results</h2>
+    <div id="results-area">
+      <p class="empty-state">Execute a query to see results.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const nlInput = document.getElementById('nl-input');
+  const cypherDisplay = document.getElementById('cypher-display');
+  const resultsArea = document.getElementById('results-area');
+  const statusArea = document.getElementById('status-area');
+  const btnTranslate = document.getElementById('btn-translate');
+  const btnRun = document.getElementById('btn-run');
+
+  let currentCypher = '';
+  let currentMeta = {};
+
+  document.querySelectorAll('.example-link').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      nlInput.value = link.textContent;
+    });
+  });
+
+  function setStatus(msg, type = 'info') {
+    statusArea.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  }
+
+  btnTranslate.addEventListener('click', async () => {
+    const q = nlInput.value.trim();
+    if (!q) return setStatus('Please enter a query.', 'warning');
+    setStatus('Translating...', 'info');
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({query: q})
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      currentCypher = data.cypher;
+      currentMeta = data.metadata || {};
+      cypherDisplay.textContent = currentCypher;
+      setStatus(`Translated in ${currentMeta.latency_ms || '?'} ms`, 'success');
+    } catch (err) {
+      setStatus('Translation error: ' + err.message, 'error');
+    }
+  });
+
+  btnRun.addEventListener('click', async () => {
+    const q = nlInput.value.trim();
+    if (!currentCypher) {
+      setStatus('Translate first, then run.', 'warning');
+      return;
+    }
+    setStatus('Executing against Neo4j...', 'info');
+    try {
+      const res = await fetch('/api/execute', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({cypher: currentCypher})
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      renderTable(data.rows);
+      setStatus(`Returned ${data.count} row(s).`, 'success');
+
+      // Store the query pair
+      await fetch('/api/store', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nl: q, cypher: currentCypher, metadata: currentMeta})
+      });
+    } catch (err) {
+      setStatus('Execution error: ' + err.message, 'error');
+    }
+  });
+
+  function renderTable(rows) {
+    if (!rows.length) {
+      resultsArea.innerHTML = '<p class="empty-state">No results.</p>';
+      return;
+    }
+    const keys = Object.keys(rows[0]).filter(k => k !== 'error');
+    let html = '<table class="data-table"><thead><tr>';
+    keys.forEach(k => html += `<th>${k}</th>`);
+    html += '</tr></thead><tbody>';
+    rows.forEach(row => {
+      html += '<tr>';
+      keys.forEach(k => {
+        const v = row[k];
+        html += `<td>${v !== null && v !== undefined ? v : ''}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    resultsArea.innerHTML = html;
+  }
+});
+</script>
+
+{% endblock %}
