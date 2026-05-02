@@ -235,6 +235,17 @@ Example valid queries:
         # Require a minimum combined score
         return best if score >= 0.35 else None
 
+    @staticmethod
+    def _get_node_context(cypher: str, pos: int) -> str | None:
+        """Look backwards from pos to detect :Variable or :Function context."""
+        start = max(0, pos - 100)
+        snippet = cypher[start:pos]
+        if ':Variable' in snippet:
+            return 'Variable'
+        if ':Function' in snippet:
+            return 'Function'
+        return None
+
     def _validate_and_fix_names(self, cypher: str) -> tuple[str, list[dict]]:
         """Check names in cypher against known entities and fuzzy-match if needed."""
         fixes = []
@@ -255,27 +266,36 @@ Example valid queries:
             if any(quoted_lower in k.lower() for k in all_known):
                 continue
 
-            best_var = self._find_best_match(quoted, self._known_variables)
-            best_func = self._find_best_match(quoted, self._known_functions)
+            context = self._get_node_context(cypher, m.start())
 
             best_match = None
             match_type = None
-            if best_var and best_func:
-                # Pick the higher scorer
-                var_score = self._score_match(quoted, best_var)
-                func_score = self._score_match(quoted, best_func)
-                if var_score >= func_score:
+
+            if context == 'Variable':
+                best_match = self._find_best_match(quoted, self._known_variables)
+                match_type = "Variable"
+            elif context == 'Function':
+                best_match = self._find_best_match(quoted, self._known_functions)
+                match_type = "Function"
+            else:
+                # Ambiguous context — try both, pick best score
+                best_var = self._find_best_match(quoted, self._known_variables)
+                best_func = self._find_best_match(quoted, self._known_functions)
+                if best_var and best_func:
+                    var_score = self._score_match(quoted, best_var)
+                    func_score = self._score_match(quoted, best_func)
+                    if var_score >= func_score:
+                        best_match = best_var
+                        match_type = "Variable"
+                    else:
+                        best_match = best_func
+                        match_type = "Function"
+                elif best_var:
                     best_match = best_var
                     match_type = "Variable"
-                else:
+                elif best_func:
                     best_match = best_func
                     match_type = "Function"
-            elif best_var:
-                best_match = best_var
-                match_type = "Variable"
-            elif best_func:
-                best_match = best_func
-                match_type = "Function"
 
             if best_match:
                 fixes.append({
