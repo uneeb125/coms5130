@@ -44,7 +44,7 @@ class ArtifactParser:
                 i += 1
                 continue
 
-            name = m.group(1)
+            name = m.group(1).lstrip('@')
             body_start = line.find('{')
             if body_start == -1:
                 i += 1
@@ -206,14 +206,11 @@ class ArtifactParser:
         """Parse callgraph DOT to extract caller->callee edges."""
         text = path.read_text()
         nodes = {}
-        node_re = re.compile(r'Node0x[0-9a-fA-F]+\s+\[shape=record,label="\{([^}]+)\}"\]')
+        # Capture node ID directly so edge lines don't confuse rfind
+        node_re = re.compile(r'(Node0x[0-9a-fA-F]+)\s+\[shape=record,label="\{([^}]+)\}"\]')
         for m in node_re.finditer(text):
-            start = text.rfind('Node0x', 0, m.start())
-            if start == -1:
-                continue
-            end = text.find(' ', start)
-            node_id = text[start:end]
-            name = m.group(1)
+            node_id = m.group(1)
+            name = m.group(2)
             nodes[node_id] = name
 
         edges = []
