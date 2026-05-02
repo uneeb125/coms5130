@@ -1,0 +1,12 @@
+digraph "CFG for '_ZNSt18_Rb_tree_node_base10_S_maximumEPS_' function" {
+	label="CFG for '_ZNSt18_Rb_tree_node_base10_S_maximumEPS_' function";
+
+	Node0x563a14316cf0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470", fontname="Courier",label="{entry:\l|  %__x.addr = alloca ptr, align 8\l  store ptr %__x, ptr %__x.addr, align 8\l  br label %while.cond\l}"];
+	Node0x563a14316cf0 -> Node0x563a14316df0;
+	Node0x563a14316df0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{while.cond:\l|  %0 = load ptr, ptr %__x.addr, align 8\l  %_M_right = getelementptr inbounds nuw %\"struct.std::_Rb_tree_node_base\",\l... ptr %0, i32 0, i32 3\l  %1 = load ptr, ptr %_M_right, align 8\l  %cmp = icmp ne ptr %1, null\l  br i1 %cmp, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
+	Node0x563a14316df0:s0 -> Node0x563a14316e50;
+	Node0x563a14316df0:s1 -> Node0x563a14320d00;
+	Node0x563a14316e50 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{while.body:\l|  %2 = load ptr, ptr %__x.addr, align 8\l  %_M_right1 = getelementptr inbounds nuw %\"struct.std::_Rb_tree_node_base\",\l... ptr %2, i32 0, i32 3\l  %3 = load ptr, ptr %_M_right1, align 8\l  store ptr %3, ptr %__x.addr, align 8\l  br label %while.cond, !llvm.loop !26\l}"];
+	Node0x563a14316e50 -> Node0x563a14316df0;
+	Node0x563a14320d00 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470", fontname="Courier",label="{while.end:\l|  %4 = load ptr, ptr %__x.addr, align 8\l  ret ptr %4\l}"];
+}

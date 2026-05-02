@@ -1,0 +1,5 @@
+digraph "CFG for '_ZNSt11char_traitsIcE6lengthEPKc' function" {
+	label="CFG for '_ZNSt11char_traitsIcE6lengthEPKc' function";
+
+	Node0x563a142c1f40 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %__s.addr = alloca ptr, align 8\l  store ptr %__s, ptr %__s.addr, align 8\l  %0 = load ptr, ptr %__s.addr, align 8\l  %call = call i64 @strlen(ptr noundef %0) #14\l  ret i64 %call\l}"];
+}

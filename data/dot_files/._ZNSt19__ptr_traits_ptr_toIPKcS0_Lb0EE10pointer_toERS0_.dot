@@ -1,0 +1,5 @@
+digraph "CFG for '_ZNSt19__ptr_traits_ptr_toIPKcS0_Lb0EE10pointer_toERS0_' function" {
+	label="CFG for '_ZNSt19__ptr_traits_ptr_toIPKcS0_Lb0EE10pointer_toERS0_' function";
+
+	Node0x563a1433c290 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %__r.addr = alloca ptr, align 8\l  store ptr %__r, ptr %__r.addr, align 8\l  %0 = load ptr, ptr %__r.addr, align 8, !nonnull !6\l  ret ptr %0\l}"];
+}

@@ -1,0 +1,22 @@
+digraph "CFG for '_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_createERmm' function" {
+	label="CFG for '_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE9_M_createERmm' function";
+
+	Node0x563a143fc380 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %this.addr = alloca ptr, align 8\l  %__capacity.addr = alloca ptr, align 8\l  %__old_capacity.addr = alloca i64, align 8\l  store ptr %this, ptr %this.addr, align 8\l  store ptr %__capacity, ptr %__capacity.addr, align 8\l  store i64 %__old_capacity, ptr %__old_capacity.addr, align 8\l  %this1 = load ptr, ptr %this.addr, align 8\l  %0 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  %1 = load i64, ptr %0, align 8\l  %call = call noundef i64\l... @_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE8max_sizeEv(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1) #14\l  %cmp = icmp ugt i64 %1, %call\l  br i1 %cmp, label %if.then, label %if.end\l|{<s0>T|<s1>F}}"];
+	Node0x563a143fc380:s0 -> Node0x563a143fc3e0;
+	Node0x563a143fc380:s1 -> Node0x563a143fcc00;
+	Node0x563a143fc3e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f4c5ad70", fontname="Courier",label="{if.then:\l|  call void @_ZSt20__throw_length_errorPKc(ptr noundef @.str.9) #15\l  unreachable\l}"];
+	Node0x563a143fcc00 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{if.end:\l|  %2 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  %3 = load i64, ptr %2, align 8\l  %4 = load i64, ptr %__old_capacity.addr, align 8\l  %cmp2 = icmp ugt i64 %3, %4\l  br i1 %cmp2, label %land.lhs.true, label %if.end11\l|{<s0>T|<s1>F}}"];
+	Node0x563a143fcc00:s0 -> Node0x563a143fcc80;
+	Node0x563a143fcc00:s1 -> Node0x563a143fd2c0;
+	Node0x563a143fcc80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70", fontname="Courier",label="{land.lhs.true:\l|  %5 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  %6 = load i64, ptr %5, align 8\l  %7 = load i64, ptr %__old_capacity.addr, align 8\l  %mul = mul i64 2, %7\l  %cmp3 = icmp ult i64 %6, %mul\l  br i1 %cmp3, label %if.then4, label %if.end11\l|{<s0>T|<s1>F}}"];
+	Node0x563a143fcc80:s0 -> Node0x563a143fd260;
+	Node0x563a143fcc80:s1 -> Node0x563a143fd2c0;
+	Node0x563a143fd260 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470", fontname="Courier",label="{if.then4:\l|  %8 = load i64, ptr %__old_capacity.addr, align 8\l  %mul5 = mul i64 2, %8\l  %9 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  store i64 %mul5, ptr %9, align 8\l  %10 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  %11 = load i64, ptr %10, align 8\l  %call6 = call noundef i64\l... @_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE8max_sizeEv(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1) #14\l  %cmp7 = icmp ugt i64 %11, %call6\l  br i1 %cmp7, label %if.then8, label %if.end10\l|{<s0>T|<s1>F}}"];
+	Node0x563a143fd260:s0 -> Node0x563a143fd780;
+	Node0x563a143fd260:s1 -> Node0x563a143fdf20;
+	Node0x563a143fd780 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cc403a70", fontname="Courier",label="{if.then8:\l|  %call9 = call noundef i64\l... @_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE8max_sizeEv(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1) #14\l  %12 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  store i64 %call9, ptr %12, align 8\l  br label %if.end10\l}"];
+	Node0x563a143fd780 -> Node0x563a143fdf20;
+	Node0x563a143fdf20 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470", fontname="Courier",label="{if.end10:\l|  br label %if.end11\l}"];
+	Node0x563a143fdf20 -> Node0x563a143fd2c0;
+	Node0x563a143fd2c0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{if.end11:\l|  %call12 = call noundef nonnull align 1 dereferenceable(1) ptr\l... @_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE16_M_get_allocatorEv(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1)\l  %13 = load ptr, ptr %__capacity.addr, align 8, !nonnull !6, !align !7\l  %14 = load i64, ptr %13, align 8\l  %add = add i64 %14, 1\l  %call13 = call noundef ptr\l... @_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE11_S_allocateERS3_m(ptr\l... noundef nonnull align 1 dereferenceable(1) %call12, i64 noundef %add)\l  ret ptr %call13\l}"];
+}

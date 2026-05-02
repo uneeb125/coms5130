@@ -1,0 +1,12 @@
+digraph "CFG for '_ZNSt8_Rb_treeIcSt4pairIKciESt10_Select1stIS2_ESt4lessIcESaIS2_EE7_S_leftEPSt13_Rb_tree_nodeIS2_E' function" {
+	label="CFG for '_ZNSt8_Rb_treeIcSt4pairIKciESt10_Select1stIS2_ESt4lessIcESaIS2_EE7_S_leftEPSt13_Rb_tree_nodeIS2_E' function";
+
+	Node0x563a142f52e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %__x.addr = alloca ptr, align 8\l  store ptr %__x, ptr %__x.addr, align 8\l  %0 = load ptr, ptr %__x.addr, align 8\l  %_M_left = getelementptr inbounds nuw %\"struct.std::_Rb_tree_node_base\", ptr\l... %0, i32 0, i32 2\l  %1 = load ptr, ptr %_M_left, align 8\l  %tobool = icmp ne ptr %1, null\l  br i1 %tobool, label %cond.true, label %cond.false\l|{<s0>T|<s1>F}}"];
+	Node0x563a142f52e0:s0 -> Node0x563a142f8860;
+	Node0x563a142f52e0:s1 -> Node0x563a142f8c90;
+	Node0x563a142f8860 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70", fontname="Courier",label="{cond.true:\l|  %2 = load ptr, ptr %__x.addr, align 8\l  %_M_left1 = getelementptr inbounds nuw %\"struct.std::_Rb_tree_node_base\",\l... ptr %2, i32 0, i32 2\l  %3 = load ptr, ptr %_M_left1, align 8\l  %call = call noundef ptr\l... @_ZNSt13_Rb_tree_nodeISt4pairIKciEE11_M_node_ptrEv(ptr noundef nonnull align\l... 8 dereferenceable(40) %3) #14\l  br label %cond.end\l}"];
+	Node0x563a142f8860 -> Node0x563a142f8c30;
+	Node0x563a142f8c90 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170", fontname="Courier",label="{cond.false:\l|  br label %cond.end\l}"];
+	Node0x563a142f8c90 -> Node0x563a142f8c30;
+	Node0x563a142f8c30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{cond.end:\l|  %cond = phi ptr [ %call, %cond.true ], [ null, %cond.false ]\l  ret ptr %cond\l}"];
+}

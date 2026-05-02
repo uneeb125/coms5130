@@ -1,0 +1,14 @@
+digraph "CFG for '_ZNSt6vectorIP4NodeSaIS1_EE12_Guard_allocD2Ev' function" {
+	label="CFG for '_ZNSt6vectorIP4NodeSaIS1_EE12_Guard_allocD2Ev' function";
+
+	Node0x563a143940e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %this.addr = alloca ptr, align 8\l  store ptr %this, ptr %this.addr, align 8\l  %this1 = load ptr, ptr %this.addr, align 8\l  %_M_storage = getelementptr inbounds nuw %\"struct.std::vector\<Node\l... *\>::_Guard_alloc\", ptr %this1, i32 0, i32 0\l  %0 = load ptr, ptr %_M_storage, align 8\l  %tobool = icmp ne ptr %0, null\l  br i1 %tobool, label %if.then, label %if.end\l|{<s0>T|<s1>F}}"];
+	Node0x563a143940e0:s0 -> Node0x563a1439ac30;
+	Node0x563a143940e0:s1 -> Node0x563a1439d010;
+	Node0x563a1439ac30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70", fontname="Courier",label="{if.then:\l|  %_M_vect = getelementptr inbounds nuw %\"struct.std::vector\<Node\l... *\>::_Guard_alloc\", ptr %this1, i32 0, i32 2\l  %1 = load ptr, ptr %_M_vect, align 8, !nonnull !6, !align !7\l  %_M_storage2 = getelementptr inbounds nuw %\"struct.std::vector\<Node\l... *\>::_Guard_alloc\", ptr %this1, i32 0, i32 0\l  %2 = load ptr, ptr %_M_storage2, align 8\l  %_M_len = getelementptr inbounds nuw %\"struct.std::vector\<Node\l... *\>::_Guard_alloc\", ptr %this1, i32 0, i32 1\l  %3 = load i64, ptr %_M_len, align 8\l  invoke void @_ZNSt12_Vector_baseIP4NodeSaIS1_EE13_M_deallocateEPS1_m(ptr\l... noundef nonnull align 8 dereferenceable(24) %1, ptr noundef %2, i64 noundef\l... %3)\l          to label %invoke.cont unwind label %terminate.lpad\l}"];
+	Node0x563a1439ac30 -> Node0x563a1439cfb0;
+	Node0x563a1439ac30 -> Node0x563a1439d660;
+	Node0x563a1439cfb0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70", fontname="Courier",label="{invoke.cont:\l|  br label %if.end\l}"];
+	Node0x563a1439cfb0 -> Node0x563a1439d010;
+	Node0x563a1439d010 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{if.end:\l|  ret void\l}"];
+	Node0x563a1439d660 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f3c7b170", fontname="Courier",label="{terminate.lpad:\l|  %4 = landingpad \{ ptr, i32 \}\l          catch ptr null\l  %5 = extractvalue \{ ptr, i32 \} %4, 0\l  call void @__clang_call_terminate(ptr %5) #14\l  unreachable\l}"];
+}

@@ -1,0 +1,12 @@
+digraph "CFG for '_ZNKSt8_Rb_treeIcSt4pairIKciESt10_Select1stIS2_ESt4lessIcESaIS2_EE13_M_begin_nodeEv' function" {
+	label="CFG for '_ZNKSt8_Rb_treeIcSt4pairIKciESt10_Select1stIS2_ESt4lessIcESaIS2_EE13_M_begin_nodeEv' function";
+
+	Node0x563a142f5bd0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %this.addr = alloca ptr, align 8\l  %__begin = alloca ptr, align 8\l  store ptr %this, ptr %this.addr, align 8\l  %this1 = load ptr, ptr %this.addr, align 8\l  %_M_impl = getelementptr inbounds nuw %\"class.std::_Rb_tree\", ptr %this1,\l... i32 0, i32 0\l  %add.ptr = getelementptr inbounds i8, ptr %_M_impl, i64 8\l  %_M_header = getelementptr inbounds nuw %\"struct.std::_Rb_tree_header\", ptr\l... %add.ptr, i32 0, i32 0\l  %_M_parent = getelementptr inbounds nuw %\"struct.std::_Rb_tree_node_base\",\l... ptr %_M_header, i32 0, i32 1\l  %0 = load ptr, ptr %_M_parent, align 8\l  store ptr %0, ptr %__begin, align 8\l  %1 = load ptr, ptr %__begin, align 8\l  %tobool = icmp ne ptr %1, null\l  br i1 %tobool, label %cond.true, label %cond.false\l|{<s0>T|<s1>F}}"];
+	Node0x563a142f5bd0:s0 -> Node0x563a142f3840;
+	Node0x563a142f5bd0:s1 -> Node0x563a142f5c30;
+	Node0x563a142f3840 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70", fontname="Courier",label="{cond.true:\l|  %2 = load ptr, ptr %__begin, align 8\l  %call = call noundef ptr\l... @_ZNSt13_Rb_tree_nodeISt4pairIKciEE11_M_node_ptrEv(ptr noundef nonnull align\l... 8 dereferenceable(40) %2) #14\l  br label %cond.end\l}"];
+	Node0x563a142f3840 -> Node0x563a142f6c30;
+	Node0x563a142f5c30 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170", fontname="Courier",label="{cond.false:\l|  br label %cond.end\l}"];
+	Node0x563a142f5c30 -> Node0x563a142f6c30;
+	Node0x563a142f6c30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{cond.end:\l|  %cond = phi ptr [ %call, %cond.true ], [ null, %cond.false ]\l  ret ptr %cond\l}"];
+}

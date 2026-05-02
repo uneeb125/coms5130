@@ -1,0 +1,5 @@
+digraph "CFG for '_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE11_S_allocateERS3_m' function" {
+	label="CFG for '_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE11_S_allocateERS3_m' function";
+
+	Node0x563a14400d30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %__a.addr.i = alloca ptr, align 8\l  %__n.addr.i = alloca i64, align 8\l  %__a.addr = alloca ptr, align 8\l  %__n.addr = alloca i64, align 8\l  %__p = alloca ptr, align 8\l  store ptr %__a, ptr %__a.addr, align 8\l  store i64 %__n, ptr %__n.addr, align 8\l  %0 = load ptr, ptr %__a.addr, align 8, !nonnull !6\l  %1 = load i64, ptr %__n.addr, align 8\l  store ptr %0, ptr %__a.addr.i, align 8\l  store i64 %1, ptr %__n.addr.i, align 8\l  %2 = load ptr, ptr %__a.addr.i, align 8, !nonnull !6\l  %3 = load i64, ptr %__n.addr.i, align 8\l  %call.i = call noundef ptr @_ZNSt15__new_allocatorIcE8allocateEmPKv(ptr\l... noundef nonnull align 1 dereferenceable(1) %2, i64 noundef %3, ptr noundef\l... null)\l  store ptr %call.i, ptr %__p, align 8\l  %4 = load ptr, ptr %__p, align 8\l  ret ptr %4\l}"];
+}

@@ -1,0 +1,15 @@
+digraph "CFG for '_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2Ev' function" {
+	label="CFG for '_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEC2Ev' function";
+
+	Node0x563a143e63e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %this.addr.i8 = alloca ptr, align 8\l  %this.addr.i6 = alloca ptr, align 8\l  %this.addr.i4 = alloca ptr, align 8\l  %this.addr.i = alloca ptr, align 8\l  %this.addr = alloca ptr, align 8\l  %ref.tmp = alloca %\"class.std::allocator.0\", align 1\l  store ptr %this, ptr %this.addr, align 8\l  %this1 = load ptr, ptr %this.addr, align 8\l  %_M_dataplus = getelementptr inbounds nuw\l... %\"class.std::__cxx11::basic_string\", ptr %this1, i32 0, i32 0\l  %call = invoke noundef ptr\l... @_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE13_M_local_dataEv(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1)\l          to label %invoke.cont unwind label %terminate.lpad\l}"];
+	Node0x563a143e63e0 -> Node0x563a143e6440;
+	Node0x563a143e63e0 -> Node0x563a143e6ad0;
+	Node0x563a143e6440 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{invoke.cont:\l|  store ptr %ref.tmp, ptr %this.addr.i, align 8\l  %this1.i = load ptr, ptr %this.addr.i, align 8\l  store ptr %this1.i, ptr %this.addr.i6, align 8\l  %this1.i7 = load ptr, ptr %this.addr.i6, align 8\l  invoke void\l... @_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE12_Alloc_hiderC2EPcOS3_(\l...ptr noundef nonnull align 8 dereferenceable(8) %_M_dataplus, ptr noundef\l... %call, ptr noundef nonnull align 1 dereferenceable(1) %ref.tmp)\l          to label %invoke.cont2 unwind label %terminate.lpad\l}"];
+	Node0x563a143e6440 -> Node0x563a143e70f0;
+	Node0x563a143e6440 -> Node0x563a143e6ad0;
+	Node0x563a143e70f0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{invoke.cont2:\l|  store ptr %ref.tmp, ptr %this.addr.i4, align 8\l  %this1.i5 = load ptr, ptr %this.addr.i4, align 8\l  call void @_ZNSt15__new_allocatorIcED2Ev(ptr noundef nonnull align 1\l... dereferenceable(1) %this1.i5) #14\l  store ptr %this1, ptr %this.addr.i8, align 8\l  %this1.i9 = load ptr, ptr %this.addr.i8, align 8\l  invoke void\l... @_ZNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE13_M_set_lengthEm(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1, i64 noundef 0)\l          to label %invoke.cont3 unwind label %terminate.lpad\l}"];
+	Node0x563a143e70f0 -> Node0x563a143e7180;
+	Node0x563a143e70f0 -> Node0x563a143e6ad0;
+	Node0x563a143e7180 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{invoke.cont3:\l|  ret void\l}"];
+	Node0x563a143e6ad0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f7bca170", fontname="Courier",label="{terminate.lpad:\l|  %0 = landingpad \{ ptr, i32 \}\l          catch ptr null\l  %1 = extractvalue \{ ptr, i32 \} %0, 0\l  call void @__clang_call_terminate(ptr %1) #15\l  unreachable\l}"];
+}

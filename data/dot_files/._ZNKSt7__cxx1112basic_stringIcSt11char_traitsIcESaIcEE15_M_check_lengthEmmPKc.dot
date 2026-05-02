@@ -1,0 +1,9 @@
+digraph "CFG for '_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE15_M_check_lengthEmmPKc' function" {
+	label="CFG for '_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE15_M_check_lengthEmmPKc' function";
+
+	Node0x563a142e53c0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{entry:\l|  %this.addr = alloca ptr, align 8\l  %__n1.addr = alloca i64, align 8\l  %__n2.addr = alloca i64, align 8\l  %__s.addr = alloca ptr, align 8\l  store ptr %this, ptr %this.addr, align 8\l  store i64 %__n1, ptr %__n1.addr, align 8\l  store i64 %__n2, ptr %__n2.addr, align 8\l  store ptr %__s, ptr %__s.addr, align 8\l  %this1 = load ptr, ptr %this.addr, align 8\l  %call = call noundef i64\l... @_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE8max_sizeEv(ptr\l... noundef nonnull align 8 dereferenceable(32) %this1) #14\l  %call2 = call noundef i64\l... @_ZNKSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEE4sizeEv(ptr noundef\l... nonnull align 8 dereferenceable(32) %this1) #14\l  %0 = load i64, ptr %__n1.addr, align 8\l  %sub = sub i64 %call2, %0\l  %sub3 = sub i64 %call, %sub\l  %1 = load i64, ptr %__n2.addr, align 8\l  %cmp = icmp ult i64 %sub3, %1\l  br i1 %cmp, label %if.then, label %if.end\l|{<s0>T|<s1>F}}"];
+	Node0x563a142e53c0:s0 -> Node0x563a1440f190;
+	Node0x563a142e53c0:s1 -> Node0x563a1440f760;
+	Node0x563a1440f190 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#f4c5ad70", fontname="Courier",label="{if.then:\l|  %2 = load ptr, ptr %__s.addr, align 8\l  call void @_ZSt20__throw_length_errorPKc(ptr noundef %2) #15\l  unreachable\l}"];
+	Node0x563a1440f760 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870", fontname="Courier",label="{if.end:\l|  ret void\l}"];
+}
