@@ -11,6 +11,7 @@ import re
 import subprocess
 import time
 import unittest
+import difflib
 from datetime import datetime, timezone
 
 from neo4j import GraphDatabase
@@ -99,14 +100,14 @@ class OpenCodeLLM:
             )
         return self._parse_ndjson(result.stdout)
 
-    def nl_to_cypher(self, nl_query: str) -> tuple[str, dict]:
+    def nl_to_cypher(self, nl_query: str, schema_context: str = "") -> tuple[str, dict]:
         prompt = (
             "You are an expert Cypher query generator for a Neo4j Code "
             "Property Graph that stores static and dynamic analysis data "
             "for a C++ Huffman encoder/decoder.\n\n"
             "Translate the user's natural-language request into a single, "
             "syntactically valid Cypher query.  Use ONLY the schema below.\n\n"
-            f"{GRAPH_SCHEMA}\n\n"
+            f"{schema_context or GRAPH_SCHEMA}\n\n"
             "Rules:\n"
             "1. Return ONLY the Cypher query (no markdown fences, no prose).\n"
             "2. Use DISTINCT when returning function names.\n"
@@ -129,6 +130,8 @@ class QueryInterface:
     def __init__(self, uri: str, user: str, password: str):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.llm = OpenCodeLLM()
+        self._known_variables = []
+        self._known_functions = []
 
     def close(self) -> None:
         self.driver.close()
@@ -158,17 +161,157 @@ class QueryInterface:
             names.add(m.group(1))
         return list(names)
 
-    def translate(self, nl_query: str) -> dict:
+    def _refresh_known_names(self) -> None:
+        """Query Neo4j for current variable and function names."""
+        try:
+            with self.driver.session() as session:
+                vars_result = session.run("MATCH (v:Variable) RETURN v.name AS name ORDER BY v.name")
+                self._known_variables = [r["name"] for r in vars_result]
+                funcs_result = session.run("MATCH (f:Function) RETURN f.name AS name ORDER BY f.name LIMIT 20")
+                self._known_functions = [r["name"] for r in funcs_result]
+        except Exception:
+            pass  # Use cached values if Neo4j is unavailable
+
+    def _build_schema_context(self) -> str:
+        """Build enriched schema prompt with actual names from the graph."""
+        self._refresh_known_names()
+        vars_list = ", ".join(f"'{v}'" for v in self._known_variables) if self._known_variables else "None"
+        funcs_list = ", ".join(f"'{f}'" for f in self._known_functions[:15]) if self._known_functions else "None"
+        return f"""\
+Nodes:
+  :Function {{name, blocks, edges, loads, stores, branches, calls, icmps,
+             geps, rets, total_instr, line_cov, branch_cov, afl_execs,
+             invokes, landingpads, allocas, phi, select}}
+    Sample function names: {funcs_list}
+  :BasicBlock {{id, function, label}}
+  :Variable {{name, function, kind}}
+    IMPORTANT — naming convention: function:varname (e.g., 'main:freq', 'getFreq:text')
+    Available variables: {vars_list}
+  :QueryLog {{timestamp, natural_language, cypher, metadata}}
+
+Relationships:
+  (:Function)-[:CALLS]->(:Function)
+  (:BasicBlock)-[:BELONGS_TO]->(:Function)
+  (:BasicBlock)-[:FLOWS_TO]->(:BasicBlock)
+  (:Variable)-[:DEPENDS_ON]->(:Variable)
+  (:QueryLog)-[:GENERATED]->(:Function)
+
+Example valid queries:
+- MATCH (f:Function {{name: 'encode'}})-[:CALLS]->(callee) RETURN DISTINCT callee.name
+- MATCH (v:Variable {{name: 'main:freq'}})-[:DEPENDS_ON]->(dep) RETURN dep.name
+- MATCH (f:Function) WHERE f.line_cov < 80 RETURN DISTINCT f.name
+- MATCH (b:BasicBlock)-[:BELONGS_TO]->(f:Function {{name: 'main'}}) RETURN b.id
+"""
+
+    @staticmethod
+    def _score_match(target: str, candidate: str) -> float:
+        """Combined substring + difflib score for name matching."""
+        target_lower = target.lower()
+        candidate_lower = candidate.lower()
+
+        # Generate substrings of length 3-8 from target
+        target_subs = set()
+        for i in range(len(target_lower)):
+            for j in range(i + 3, min(i + 9, len(target_lower) + 1)):
+                target_subs.add(target_lower[i:j])
+
+        # Count how many target substrings appear in candidate
+        match_count = sum(1 for s in target_subs if s in candidate_lower)
+
+        # Base difflib ratio
+        ratio = difflib.SequenceMatcher(None, target_lower, candidate_lower).ratio()
+
+        # Boost for substring matches (each match adds 0.12, capped at 0.5)
+        boost = min(match_count * 0.12, 0.5)
+        return ratio + boost
+
+    def _find_best_match(self, quoted: str, candidates: list[str]) -> str | None:
+        """Find best match using custom scoring. Returns None if no decent match."""
+        if not candidates:
+            return None
+        scored = [(c, self._score_match(quoted, c)) for c in candidates]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        best, score = scored[0]
+        # Require a minimum combined score
+        return best if score >= 0.35 else None
+
+    def _validate_and_fix_names(self, cypher: str) -> tuple[str, list[dict]]:
+        """Check names in cypher against known entities and fuzzy-match if needed."""
+        fixes = []
+        corrected = cypher
+        offset = 0
+        all_known = set(self._known_variables + self._known_functions)
+
+        for m in re.finditer(r'(["\'])([^"\']+)\1', cypher):
+            quoted = m.group(2)
+            if quoted in all_known:
+                continue
+            # Skip parameter placeholders and numbers
+            if quoted.startswith('$') or quoted.replace('.', '', 1).replace('-', '', 1).isdigit():
+                continue
+            # Skip if quoted is a valid substring of any known name
+            # (e.g. 'freq' matches 'main:freq', 'getFreq:freq', etc.)
+            quoted_lower = quoted.lower()
+            if any(quoted_lower in k.lower() for k in all_known):
+                continue
+
+            best_var = self._find_best_match(quoted, self._known_variables)
+            best_func = self._find_best_match(quoted, self._known_functions)
+
+            best_match = None
+            match_type = None
+            if best_var and best_func:
+                # Pick the higher scorer
+                var_score = self._score_match(quoted, best_var)
+                func_score = self._score_match(quoted, best_func)
+                if var_score >= func_score:
+                    best_match = best_var
+                    match_type = "Variable"
+                else:
+                    best_match = best_func
+                    match_type = "Function"
+            elif best_var:
+                best_match = best_var
+                match_type = "Variable"
+            elif best_func:
+                best_match = best_func
+                match_type = "Function"
+
+            if best_match:
+                fixes.append({
+                    "original": quoted,
+                    "suggested": best_match,
+                    "type": match_type,
+                    "replaced": True,
+                })
+                start = m.start(2) + offset
+                end = m.end(2) + offset
+                corrected = corrected[:start] + best_match + corrected[end:]
+                offset += len(best_match) - len(quoted)
+            else:
+                fixes.append({
+                    "original": quoted,
+                    "suggested": None,
+                    "replaced": False,
+                    "warning": f"Unknown name '{quoted}' — no close match found.",
+                })
+
+        return corrected, fixes
+
+    def translate(self, nl_query: str, auto_fix: bool = True) -> dict:
         """Generate Cypher from natural language.
 
         Returns a dict with keys:
-            cypher      – generated query string
-            valid       – bool, passed sanity checks
-            metadata    – latency, token usage, cost
+            cypher           – generated query string
+            corrected_cypher – auto-fixed query (if applicable)
+            valid            – bool, passed sanity checks
+            metadata         – latency, token usage, cost
+            fixes            – list of name corrections applied
         """
         t0 = time.perf_counter()
+        schema_context = self._build_schema_context()
         try:
-            cypher, llm_meta = self.llm.nl_to_cypher(nl_query)
+            cypher, llm_meta = self.llm.nl_to_cypher(nl_query, schema_context=schema_context)
         except Exception as exc:
             raise LLMError(f"Translation failed for: {nl_query}") from exc
 
@@ -179,8 +322,18 @@ class QueryInterface:
                 f"Generated Cypher failed validation: {cypher[:200]}"
             )
 
+        corrected_cypher, fixes = self._validate_and_fix_names(cypher)
         meta = {"latency_ms": latency_ms, **llm_meta}
-        return {"cypher": cypher, "valid": valid, "metadata": meta}
+        result = {
+            "cypher": cypher,
+            "valid": valid,
+            "metadata": meta,
+            "fixes": fixes,
+        }
+        if auto_fix and corrected_cypher != cypher:
+            result["corrected_cypher"] = corrected_cypher
+            result["used_correction"] = True
+        return result
 
     def store(
         self,

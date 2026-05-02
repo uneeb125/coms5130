@@ -121,17 +121,24 @@ def query_page():
 
 @app.route("/api/translate", methods=["POST"])
 def api_translate():
-    """Translate NL to Cypher using query_interface.OpenCodeLLM."""
+    """Translate NL to Cypher using query_interface.QueryInterface."""
     data = request.get_json(force=True)
     nl_query = data.get("query", "").strip()
     if not nl_query:
         return jsonify({"error": "Empty query"}), 400
 
     try:
-        from query_interface import OpenCodeLLM, QueryInterface
-        llm = OpenCodeLLM()
-        cypher, meta = llm.nl_to_cypher(nl_query)
-        return jsonify({"cypher": cypher, "metadata": meta})
+        from query_interface import QueryInterface
+        qi = QueryInterface(NEO4J_URI, NEO4J_USER, NEO4J_PASS)
+        result = qi.translate(nl_query, auto_fix=True)
+        qi.close()
+        return jsonify({
+            "cypher": result.get("corrected_cypher", result["cypher"]),
+            "original_cypher": result["cypher"],
+            "metadata": result["metadata"],
+            "fixes": result.get("fixes", []),
+            "used_correction": result.get("used_correction", False),
+        })
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
