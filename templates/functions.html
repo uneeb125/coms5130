@@ -17,38 +17,40 @@
 
 <section class="panel">
   <h2>All Functions</h2>
-  <table class="data-table sortable">
-    <thead>
-      <tr>
-        <th>Function</th>
-        <th>Blocks</th>
-        <th>Edges</th>
-        <th>Loads</th>
-        <th>Stores</th>
-        <th>Branches</th>
-        <th>Calls</th>
-        <th>ICMPs</th>
-        <th>GEPs</th>
-        <th>Total Instr</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for f in functions %}
-      <tr data-name="{{ f.name }}">
-        <td><code class="func-name" style="cursor:pointer; color:#4a90d9;">{{ f.name }}</code></td>
-        <td>{{ f.blocks }}</td>
-        <td>{{ f.edges }}</td>
-        <td>{{ f.loads }}</td>
-        <td>{{ f.stores }}</td>
-        <td>{{ f.branches }}</td>
-        <td>{{ f.calls }}</td>
-        <td>{{ f.icmps }}</td>
-        <td>{{ f.geps }}</td>
-        <td>{{ f.total_instr }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="data-table sortable">
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>Blocks</th>
+          <th>Edges</th>
+          <th>Loads</th>
+          <th>Stores</th>
+          <th>Branches</th>
+          <th>Calls</th>
+          <th>ICMPs</th>
+          <th>GEPs</th>
+          <th>Total Instr</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in functions %}
+        <tr data-name="{{ f.name }}">
+          <td><code class="func-name" style="cursor:pointer; color:#4a90d9;">{{ f.name }}</code></td>
+          <td>{{ f.blocks }}</td>
+          <td>{{ f.edges }}</td>
+          <td>{{ f.loads }}</td>
+          <td>{{ f.stores }}</td>
+          <td>{{ f.branches }}</td>
+          <td>{{ f.calls }}</td>
+          <td>{{ f.icmps }}</td>
+          <td>{{ f.geps }}</td>
+          <td>{{ f.total_instr }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 
 <div id="func-modal" class="modal">
