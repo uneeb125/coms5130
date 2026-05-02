@@ -73,6 +73,7 @@ def load_query_log(limit=100):
 # ---------------------------------------------------------------------------
 @app.route("/")
 def index():
+    show_system = request.args.get('system', '0') == '1'
     stats = {}
     try:
         stats["functions"] = run_cypher("MATCH (f:Function) RETURN count(f) AS c")[0]["c"]
@@ -91,8 +92,9 @@ def index():
     except Exception:
         stats["variables"] = "N/A"
 
+    source_filter = "" if show_system else "WHERE f.source = 'user'"
     top_functions = run_cypher(
-        "MATCH (f:Function) RETURN f.name AS name, f.total_instr AS instr, "
+        f"MATCH (f:Function) {source_filter} RETURN f.name AS name, f.total_instr AS instr, "
         "f.line_cov AS line_cov, f.branch_cov AS branch_cov "
         "ORDER BY f.total_instr DESC LIMIT 10"
     )
@@ -104,6 +106,7 @@ def index():
         stats=stats,
         top_functions=top_functions,
         recent_queries=recent_queries,
+        show_system=show_system,
     )
 
 
@@ -178,18 +181,22 @@ def api_store():
 
 @app.route("/graph")
 def graph_page():
-    return render_template("graph.html")
+    show_system = request.args.get('system', '0') == '1'
+    return render_template("graph.html", show_system=show_system)
 
 
 @app.route("/api/graph/calls")
 def api_call_graph():
+    show_system = request.args.get('system', '0') == '1'
+    source_filter = "" if show_system else "WHERE f.source = 'user'"
+    source_filter_edge = "" if show_system else "WHERE a.source = 'user' AND b.source = 'user'"
     nodes = run_cypher(
-        "MATCH (f:Function) RETURN id(f) AS id, f.name AS label, "
+        f"MATCH (f:Function) {source_filter} RETURN id(f) AS id, f.name AS label, "
         "f.line_cov AS line_cov, f.branch_cov AS branch_cov, "
-        "f.total_instr AS total_instr"
+        "f.total_instr AS total_instr, f.source AS source"
     )
     edges = run_cypher(
-        "MATCH (a:Function)-[:CALLS]->(b:Function) "
+        f"MATCH (a:Function)-[:CALLS]->(b:Function) {source_filter_edge} "
         "RETURN id(a) AS source, id(b) AS target"
     )
     return jsonify({"nodes": nodes, "edges": edges})
@@ -197,28 +204,32 @@ def api_call_graph():
 
 @app.route("/coverage")
 def coverage_page():
+    show_system = request.args.get('system', '0') == '1'
+    source_filter = "" if show_system else "WHERE f.source = 'user'"
     functions = run_cypher(
-        "MATCH (f:Function) "
+        f"MATCH (f:Function) {source_filter} "
         "RETURN f.name AS name, f.line_cov AS line_cov, "
         "f.branch_cov AS branch_cov, f.afl_execs AS afl_execs, "
         "f.total_instr AS total_instr, f.blocks AS blocks "
         "ORDER BY f.name"
     )
-    return render_template("coverage.html", functions=functions)
+    return render_template("coverage.html", functions=functions, show_system=show_system)
 
 
 @app.route("/functions")
 def functions_page():
+    show_system = request.args.get('system', '0') == '1'
+    source_filter = "" if show_system else "WHERE f.source = 'user'"
     funcs = run_cypher(
-        "MATCH (f:Function) "
-        "RETURN f.name AS name, f.blocks AS blocks, f.edges AS edges, "
+        f"MATCH (f:Function) {source_filter} "
+        "RETURN f.name AS name, f.source AS source, f.blocks AS blocks, f.edges AS edges, "
         "f.loads AS loads, f.stores AS stores, f.branches AS branches, "
         "f.calls AS calls, f.icmps AS icmps, f.geps AS geps, "
         "f.total_instr AS total_instr, f.line_cov AS line_cov, "
         "f.branch_cov AS branch_cov "
         "ORDER BY f.name"
     )
-    return render_template("functions.html", functions=funcs)
+    return render_template("functions.html", functions=funcs, show_system=show_system)
 
 
 @app.route("/api/function/<name>")

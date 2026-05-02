@@ -420,6 +420,21 @@ class Neo4jIngestor:
                 print(f"[WARN] BasicBlock constraint may already exist: {e}")
             print("[DB] Schema constraints created.")
 
+    @staticmethod
+    def _is_user_function(name: str) -> bool:
+        """Identify user-defined vs system (stdlib/compiler) functions."""
+        if name == 'main':
+            return True
+        # C++ mangled prefixes for user code in huffman.cpp
+        user_prefixes = (
+            '_Z7getFreq',   # getFreq(string)
+            '_Z9buildTree', # buildTree(map)
+            '_Z6encode',    # encode(Node*, string, map&)
+            '_ZN4NodeC2',   # Node constructors
+            '_ZN7Compare',  # Compare::operator()
+        )
+        return name.startswith(user_prefixes)
+
     def ingest_functions(self, functions, coverage, fuzzer_stats):
         """Ingest Function nodes with merged static + dynamic metrics."""
         with self.driver.session() as session:
@@ -429,11 +444,13 @@ class Neo4jIngestor:
                 afl_execs = cov.get('called', fuzzer_stats.get('execs_done', 0))
                 line_cov = cov.get('line_cov', 0.0)
                 branch_cov = cov.get('blocks_executed_pct', 0.0)
+                source = 'user' if self._is_user_function(name) else 'system'
 
                 session.run(
                     """
                     CREATE (fn:Function {
                         name: $name,
+                        source: $source,
                         blocks: $blocks,
                         edges: $edges,
                         loads: $loads,
@@ -456,6 +473,7 @@ class Neo4jIngestor:
                     """,
                     {
                         "name": name,
+                        "source": source,
                         "blocks": f['blocks'],
                         "edges": f['edges'],
                         "loads": f['loads'],
@@ -590,7 +608,7 @@ def export_schema_json(func_params=None, func_locals=None, path="neo4j_schema.js
     schema = {
         "nodes": {
             "Function": [
-                "name", "blocks", "edges", "loads", "stores", "branches",
+                "name", "source", "blocks", "edges", "loads", "stores", "branches",
                 "calls", "icmps", "geps", "rets", "total_instr",
                 "line_cov", "branch_cov", "afl_execs", "invokes",
                 "landingpads", "allocas", "phi", "select"

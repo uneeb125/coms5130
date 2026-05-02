@@ -23,11 +23,15 @@ QUERY_LOG_PATH = os.getenv("QUERY_LOG_PATH", "query_log.json")
 
 GRAPH_SCHEMA = """\
 Nodes:
-  :Function {name, blocks, edges, loads, stores, branches, calls, icmps,
+  :Function {name, source, blocks, edges, loads, stores, branches, calls, icmps,
              geps, rets, total_instr, line_cov, branch_cov, afl_execs,
              invokes, landingpads, allocas, phi, select}
+    source = 'user' for user-defined functions, 'system' for stdlib/compiler internals.
+    Sample function names: {funcs_list}
   :BasicBlock {id, function, label}
-  :Variable {name}
+  :Variable {name, function, kind}
+    IMPORTANT — naming convention: function:varname (e.g., 'main:freq', 'getFreq:text')
+    Available variables: {vars_list}
   :QueryLog {timestamp, natural_language, cypher, metadata}
 
 Relationships:

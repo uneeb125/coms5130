@@ -9,6 +9,14 @@
   </p>
 </section>
 
+<div class="filter-bar">
+  <label class="toggle">
+    <input type="checkbox" id="system-toggle" {% if show_system %}checked{% endif %}>
+    <span class="toggle-slider"></span>
+    Show system/stdlib functions
+  </label>
+</div>
+
 <section class="stats-grid">
   <div class="stat-card">
     <div class="stat-value">{{ stats.functions }}</div>
@@ -107,5 +115,13 @@
     </div>
   </div>
 </section>
+
+<script>
+document.getElementById('system-toggle').addEventListener('change', (e) => {
+  const url = new URL(window.location);
+  url.searchParams.set('system', e.target.checked ? '1' : '0');
+  window.location = url;
+});
+</script>
 
 {% endblock %}
