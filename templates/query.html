@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Query Interface &mdash; COM S 5130 Demo{% endblock %}
+{% block container_class %} wide{% endblock %}
 {% block content %}
 
 <section class="hero">
@@ -12,9 +13,10 @@
     <h2>Ask a Question</h2>
     <div class="input-group">
       <input type="text" id="nl-input" placeholder="e.g. Which functions can reach encode?" autocomplete="off">
-      <button id="btn-translate" class="btn btn-primary">Translate</button>
-      <button id="btn-run" class="btn btn-success">Run Query</button>
+      <button id="btn-translate" class="btn btn-primary" title="Enter">Translate</button>
+      <button id="btn-run" class="btn btn-success" title="Shift+Enter">Run Query</button>
     </div>
+    <div class="shortcut-hint">Press <kbd>Enter</kbd> to translate &middot; <kbd>Shift</kbd>+<kbd>Enter</kbd> to translate &amp; run</div>
 
     <div class="examples">
       <h3>Example Queries</h3>
@@ -29,8 +31,12 @@
   </section>
 
   <section class="panel">
-    <h2>Generated Cypher</h2>
+    <div class="panel-header">
+      <h2>Generated Cypher</h2>
+      <button id="btn-copy" class="btn btn-sm" title="Copy to clipboard" disabled>Copy</button>
+    </div>
     <pre id="cypher-display" class="code-block">-- Cypher will appear here --</pre>
+    <div id="fix-banner"></div>
 
     <h2>Results</h2>
     <div id="results-area">
@@ -45,8 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const cypherDisplay = document.getElementById('cypher-display');
   const resultsArea = document.getElementById('results-area');
   const statusArea = document.getElementById('status-area');
+  const fixBanner = document.getElementById('fix-banner');
   const btnTranslate = document.getElementById('btn-translate');
   const btnRun = document.getElementById('btn-run');
+  const btnCopy = document.getElementById('btn-copy');
 
   let currentCypher = '';
   let currentMeta = {};
@@ -55,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     link.addEventListener('click', e => {
       e.preventDefault();
       nlInput.value = link.textContent;
+      nlInput.focus();
     });
   });
 
@@ -62,10 +71,32 @@ document.addEventListener('DOMContentLoaded', () => {
     statusArea.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
   }
 
-  btnTranslate.addEventListener('click', async () => {
+  function showFixes(fixes) {
+    if (!fixes || fixes.length === 0) {
+      fixBanner.innerHTML = '';
+      return;
+    }
+    const replaced = fixes.filter(f => f.replaced);
+    const warnings = fixes.filter(f => !f.replaced);
+    let html = '';
+    if (replaced.length) {
+      html += `<div class="alert alert-warning"><strong>Auto-corrected names:</strong> `;
+      html += replaced.map(f => `<code>${f.original}</code> &rarr; <code>${f.suggested}</code>`).join(', ');
+      html += `</div>`;
+    }
+    if (warnings.length) {
+      html += `<div class="alert alert-error"><strong>Warnings:</strong> `;
+      html += warnings.map(f => f.warning).join('; ');
+      html += `</div>`;
+    }
+    fixBanner.innerHTML = html;
+  }
+
+  async function doTranslate() {
     const q = nlInput.value.trim();
-    if (!q) return setStatus('Please enter a query.', 'warning');
+    if (!q) { setStatus('Please enter a query.', 'warning'); return false; }
     setStatus('Translating...', 'info');
+    fixBanner.innerHTML = '';
     try {
       const res = await fetch('/api/translate', {
         method: 'POST',
@@ -77,13 +108,19 @@ document.addEventListener('DOMContentLoaded', () => {
       currentCypher = data.cypher;
       currentMeta = data.metadata || {};
       cypherDisplay.textContent = currentCypher;
-      setStatus(`Translated in ${currentMeta.latency_ms || '?'} ms`, 'success');
+      btnCopy.disabled = false;
+      showFixes(data.fixes);
+      let statusMsg = `Translated in ${currentMeta.latency_ms || '?'} ms`;
+      if (data.used_correction) statusMsg += ' (auto-corrected)';
+      setStatus(statusMsg, 'success');
+      return true;
     } catch (err) {
       setStatus('Translation error: ' + err.message, 'error');
+      return false;
     }
-  });
+  }
 
-  btnRun.addEventListener('click', async () => {
+  async function doRun() {
     const q = nlInput.value.trim();
     if (!currentCypher) {
       setStatus('Translate first, then run.', 'warning');
@@ -102,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTable(data.rows);
       setStatus(`Returned ${data.count} row(s).`, 'success');
 
-      // Store the query pair
       await fetch('/api/store', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -111,27 +147,62 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       setStatus('Execution error: ' + err.message, 'error');
     }
+  }
+
+  btnTranslate.addEventListener('click', doTranslate);
+  btnRun.addEventListener('click', async () => {
+    const ok = await doTranslate();
+    if (ok) await doRun();
+  });
+
+  btnCopy.addEventListener('click', () => {
+    if (!currentCypher) return;
+    navigator.clipboard.writeText(currentCypher).then(() => {
+      btnCopy.textContent = 'Copied!';
+      setTimeout(() => btnCopy.textContent = 'Copy', 1500);
+    });
+  });
+
+  nlInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        btnRun.click();
+      } else {
+        btnTranslate.click();
+      }
+    }
   });
 
   function renderTable(rows) {
-    if (!rows.length) {
-      resultsArea.innerHTML = '<p class="empty-state">No results.</p>';
+    if (!rows || rows.length === 0) {
+      resultsArea.innerHTML = '<p class="empty-state">No results returned.</p>';
+      return;
+    }
+    if (rows.length === 1 && rows[0].error) {
+      resultsArea.innerHTML = `<div class="alert alert-error">Neo4j error: ${escapeHtml(rows[0].error)}</div>`;
       return;
     }
     const keys = Object.keys(rows[0]).filter(k => k !== 'error');
-    let html = '<table class="data-table"><thead><tr>';
-    keys.forEach(k => html += `<th>${k}</th>`);
+    let html = '<div class="table-responsive"><table class="data-table"><thead><tr>';
+    keys.forEach(k => html += `<th>${escapeHtml(k)}</th>`);
     html += '</tr></thead><tbody>';
     rows.forEach(row => {
       html += '<tr>';
       keys.forEach(k => {
         const v = row[k];
-        html += `<td>${v !== null && v !== undefined ? v : ''}</td>`;
+        html += `<td>${v !== null && v !== undefined ? escapeHtml(String(v)) : ''}</td>`;
       });
       html += '</tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     resultsArea.innerHTML = html;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 });
 </script>
