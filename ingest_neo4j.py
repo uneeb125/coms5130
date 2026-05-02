@@ -254,6 +254,147 @@ class ArtifactParser:
                 flows[func_name] = func_flows
         return flows
 
+    @staticmethod
+    def parse_source_variables(path: Path):
+        """
+        Parse C++ source to extract function parameters, local variables,
+        and call sites with argument bindings.
+        Returns:
+            func_params: dict[str, list[str]]
+            func_locals: dict[str, list[str]]
+            func_calls:  list[(caller, callee, arg_vars, ret_var)]
+        """
+        text = path.read_text()
+
+        # --- 1. Extract function signatures ---
+        func_sig_re = re.compile(
+            r'^(.*?)\s+(\w+)\s*\(([^)]*)\)\s*\{',
+            re.MULTILINE
+        )
+
+        func_params = {}
+        func_body_start = {}
+        func_body_end = {}
+
+        for m in func_sig_re.finditer(text):
+            ret_type = m.group(1).strip()
+            # Skip constructors / initializer-list noise
+            if '(' in ret_type or ':' in ret_type or ret_type in ('', 'struct', 'class'):
+                continue
+            name = m.group(2)
+            params_str = m.group(3).strip()
+            params = []
+            if params_str:
+                # Split on commas but respect angle brackets
+                depth = 0
+                current = ''
+                for ch in params_str:
+                    if ch == '<':
+                        depth += 1
+                        current += ch
+                    elif ch == '>':
+                        depth -= 1
+                        current += ch
+                    elif ch == ',' and depth == 0:
+                        params.append(current.strip())
+                        current = ''
+                    else:
+                        current += ch
+                if current.strip():
+                    params.append(current.strip())
+                # Extract last identifier from each parameter
+                def _param_name(p):
+                    m = re.search(r'(\w+)(?:\[\])?\s*$', p.split('=')[0])
+                    return m.group(1) if m else None
+
+                params = [n for n in (_param_name(p) for p in params) if n]
+            func_params[name] = params
+
+            # Brace-match to find body end
+            start = m.end() - 1
+            brace_depth = 0
+            pos = start
+            while pos < len(text):
+                if text[pos] == '{':
+                    brace_depth += 1
+                elif text[pos] == '}':
+                    brace_depth -= 1
+                    if brace_depth == 0:
+                        break
+                pos += 1
+            func_body_start[name] = start
+            func_body_end[name] = pos
+
+        # --- 2. Extract local variables ---
+        var_decl_re = re.compile(
+            r'^\s*(?!\s*(?:return|if|while|for|switch|case)\b)'
+            r'([\w:]+(?:<[^>]*>)?(?:\s*\*\s*|\s*\&\s*|\s+))'
+            r'(\w+)\s*(?:=|;)',
+            re.MULTILINE,
+        )
+        cpp_keywords = {'auto', 'const', 'static', 'inline', 'virtual', 'constexpr'}
+        func_locals = {}
+        for name, start in func_body_start.items():
+            end = func_body_end[name]
+            body = text[start:end + 1]
+            locals_ = []
+            for vm in var_decl_re.finditer(body):
+                var_name = vm.group(2)
+                if var_name not in func_params.get(name, []) and var_name not in cpp_keywords:
+                    locals_.append(var_name)
+            func_locals[name] = locals_
+
+        # --- 3. Extract function calls ---
+        func_calls = []
+        call_re = re.compile(r'(\w+)\s*=\s*(\w+)\s*\(([^)]*)\)\s*;')
+        void_call_re = re.compile(r'(\w+)\s*\(([^)]*)\)\s*;')
+
+        for caller_name, start in func_body_start.items():
+            end = func_body_end[caller_name]
+            body = text[start:end + 1]
+
+            for cm in call_re.finditer(body):
+                ret_var = cm.group(1)
+                callee = cm.group(2)
+                if callee in func_params:
+                    args_str = cm.group(3)
+                    arg_vars = [a.strip() for a in args_str.split(',')]
+                    func_calls.append((caller_name, callee, arg_vars, ret_var))
+
+            for vcm in void_call_re.finditer(body):
+                callee = vcm.group(1)
+                if callee in func_params and callee != caller_name:
+                    args_str = vcm.group(2)
+                    arg_vars = [a.strip() for a in args_str.split(',')]
+                    func_calls.append((caller_name, callee, arg_vars, None))
+
+        return func_params, func_locals, func_calls
+
+    @staticmethod
+    def compute_dataflow(func_params, func_locals, func_calls):
+        """
+        Build DEPENDS_ON edges from parsed source.
+        Variables are scoped as 'function:varname'.
+        """
+        edges = []
+
+        for caller, callee, arg_vars, ret_var in func_calls:
+            callee_params = func_params.get(callee, [])
+            for idx, arg in enumerate(arg_vars):
+                if idx < len(callee_params):
+                    # downstream (callee param) DEPENDS_ON upstream (caller arg)
+                    downstream = f"{callee}:{callee_params[idx]}"
+                    upstream = f"{caller}:{arg}"
+                    edges.append((downstream, upstream))
+
+            if ret_var:
+                # downstream (caller var) DEPENDS_ON upstream (callee return)
+                downstream = f"{caller}:{ret_var}"
+                upstream = f"{callee}:return"
+                edges.append((downstream, upstream))
+
+        return edges
+
 
 class Neo4jIngestor:
     def __init__(self, uri, user, password):
@@ -392,16 +533,38 @@ class Neo4jIngestor:
                     created += record["cnt"]
             print(f"[DB] Created {created} CALLS edges from callgraph.")
 
-    def create_variable_dependencies(self):
-        """Create placeholder DEPENDS_ON edges for key data-flow variables."""
-        deps = [
-            ("main:input", "getFreq:text"),
-            ("getFreq:result", "buildTree:freq"),
-            ("buildTree:root", "encode:root"),
-            ("main:huffmanCodes", "output:codes"),
-        ]
+    def ingest_variables(self, func_params, func_locals):
+        """Ingest Variable nodes scoped per function."""
         with self.driver.session() as session:
-            for src, dst in deps:
+            count = 0
+            for func, params in func_params.items():
+                for p in params:
+                    var_name = f"{func}:{p}"
+                    session.run(
+                        """
+                        MERGE (v:Variable {name: $name})
+                        ON CREATE SET v.function = $func, v.kind = 'parameter'
+                        """,
+                        {"name": var_name, "func": func},
+                    )
+                    count += 1
+            for func, locals_ in func_locals.items():
+                for l in locals_:
+                    var_name = f"{func}:{l}"
+                    session.run(
+                        """
+                        MERGE (v:Variable {name: $name})
+                        ON CREATE SET v.function = $func, v.kind = 'local'
+                        """,
+                        {"name": var_name, "func": func},
+                    )
+                    count += 1
+            print(f"[DB] Ingested {count} Variable nodes.")
+
+    def create_variable_dependencies(self, dataflow_edges):
+        """Create DEPENDS_ON edges from computed data-flow analysis."""
+        with self.driver.session() as session:
+            for src, dst in dataflow_edges:
                 session.run(
                     """
                     MERGE (v1:Variable {name: $src})
@@ -410,10 +573,20 @@ class Neo4jIngestor:
                     """,
                     {"src": src, "dst": dst},
                 )
-            print(f"[DB] Created {len(deps)} DEPENDS_ON variable edges.")
+            print(f"[DB] Created {len(dataflow_edges)} DEPENDS_ON variable edges.")
 
 
-def export_schema_json(path="neo4j_schema.json"):
+def export_schema_json(func_params=None, func_locals=None, path="neo4j_schema.json"):
+    # Build list of actual variable names for the query interface
+    variables = []
+    if func_params and func_locals:
+        for func, params in func_params.items():
+            for p in params:
+                variables.append(f"{func}:{p}")
+        for func, locals_ in func_locals.items():
+            for l in locals_:
+                variables.append(f"{func}:{l}")
+
     schema = {
         "nodes": {
             "Function": [
@@ -423,7 +596,7 @@ def export_schema_json(path="neo4j_schema.json"):
                 "landingpads", "allocas", "phi", "select"
             ],
             "BasicBlock": ["id", "function", "label"],
-            "Variable": ["name"],
+            "Variable": ["name", "function", "kind"],
             "QueryLog": ["timestamp", "natural_language", "cypher", "status", "latency_ms", "results_count"],
         },
         "relationships": {
@@ -433,6 +606,7 @@ def export_schema_json(path="neo4j_schema.json"):
             "DEPENDS_ON": ("Variable", "Variable"),
             "GENERATED": ("QueryLog", "Function"),
         },
+        "variables": variables,
     }
     with open(path, "w") as f:
         json.dump(schema, f, indent=2)
@@ -462,15 +636,22 @@ def main():
     flows = parser.parse_cfg_dots(CFG_DOT_DIR)
     print(f"      Found CFGs for {len(flows)} functions")
 
+    print("[6/6] Parsing C++ source for variables & data flow...")
+    func_params, func_locals, func_calls = parser.parse_source_variables(BASE / "data/huffman.cpp")
+    dataflow_edges = parser.compute_dataflow(func_params, func_locals, func_calls)
+    print(f"      Found {len(func_params)} functions, {sum(len(v) for v in func_params.values())} params, "
+          f"{sum(len(v) for v in func_locals.values())} locals, {len(dataflow_edges)} data-flow edges")
+
     ingestor = Neo4jIngestor(NEO4J_URI, NEO4J_USER, NEO4J_PASS)
     ingestor.clear_db()
     ingestor.create_schema()
     ingestor.ingest_functions(functions, coverage, fuzzer_stats)
     ingestor.ingest_basic_blocks_and_flows(flows)
     ingestor.create_call_edges(call_edges)
-    ingestor.create_variable_dependencies()
+    ingestor.ingest_variables(func_params, func_locals)
+    ingestor.create_variable_dependencies(dataflow_edges)
     ingestor.close()
-    export_schema_json()
+    export_schema_json(func_params, func_locals)
     print("[DONE] Neo4j ingestion complete.")
 
 
