@@ -19,7 +19,13 @@ cd ProjectDemo
 pip install -r requirements.txt
 ```
 
-### 2. Set Neo4j credentials (optional)
+### 2. Start Neo4j
+
+```bash
+docker run -d --name neo4j-demo -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password neo4j:latest
+```
+
+### 3. Set Neo4j credentials (optional)
 
 ```bash
 export NEO4J_URI=bolt://localhost:7687
@@ -27,14 +33,14 @@ export NEO4J_USER=neo4j
 export NEO4J_PASSWORD=password
 ```
 
-### 3. Ingest data into Neo4j (if not already done)
+### 4. Ingest data into Neo4j (if not already done)
 
 ```bash
 cd ../ProjectUpdate3
 python ingest_neo4j.py
 ```
 
-### 4. Run the demo
+### 5. Run the demo
 
 ```bash
 cd ../ProjectDemo
