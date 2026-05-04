@@ -150,10 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btnTranslate.addEventListener('click', doTranslate);
-  btnRun.addEventListener('click', async () => {
-    const ok = await doTranslate();
-    if (ok) await doRun();
-  });
+  btnRun.addEventListener('click', doRun);
 
   btnCopy.addEventListener('click', () => {
     if (!currentCypher) return;
