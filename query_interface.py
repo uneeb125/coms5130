@@ -56,13 +56,6 @@ class StorageError(Exception):
 
 
 class OpenCodeLLM:
-    """Thin wrapper around `opencode run --format json`.
-
-    The CLI emits NDJSON lines.  We collect every event whose *type* is
-    ``text`` and concatenate them.  ``step_finish`` events carry token/cost
-    metadata that we bubble up for observability.
-    """
-
     def __init__(self, timeout: int = 120):
         self.timeout = timeout
 
