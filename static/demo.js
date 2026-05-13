@@ -1,10 +1,6 @@
-// ProjectDemo/static/demo.js
-// Shared client-side utilities (page-specific logic lives inline in templates).
-
 (function () {
   'use strict';
 
-  // Simple table sorting for elements with .sortable
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.sortable thead th').forEach(th => {
       th.style.cursor = 'pointer';

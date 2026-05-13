@@ -1,10 +1,3 @@
-"""
-query_interface.py
-Natural-Language → Cypher translation and persistent storage.
-Uses `opencode run --format json` as the LLM backend.
-Does NOT execute generated Cypher against Neo4j.
-"""
-
 import json
 import os
 import re
@@ -122,7 +115,6 @@ class OpenCodeLLM:
 
 
 class QueryInterface:
-    """High-level façade: translate NL → Cypher, store, retrieve."""
 
     def __init__(self, uri: str, user: str, password: str):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -159,7 +151,6 @@ class QueryInterface:
         return list(names)
 
     def _refresh_known_names(self) -> None:
-        """Query Neo4j for current variable and function names."""
         try:
             with self.driver.session() as session:
                 vars_result = session.run("MATCH (v:Variable) RETURN v.name AS name ORDER BY v.name")
@@ -167,10 +158,9 @@ class QueryInterface:
                 funcs_result = session.run("MATCH (f:Function) RETURN f.name AS name ORDER BY f.name LIMIT 20")
                 self._known_functions = [r["name"] for r in funcs_result]
         except Exception:
-            pass  # Use cached values if Neo4j is unavailable
+            pass
 
     def _build_schema_context(self) -> str:
-        """Build enriched schema prompt with actual names from the graph."""
         self._refresh_known_names()
         vars_list = ", ".join(f"'{v}'" for v in self._known_variables) if self._known_variables else "None"
         funcs_list = ", ".join(f"'{f}'" for f in self._known_functions[:15]) if self._known_functions else "None"
@@ -202,39 +192,31 @@ Example valid queries:
 
     @staticmethod
     def _score_match(target: str, candidate: str) -> float:
-        """Combined substring + difflib score for name matching."""
         target_lower = target.lower()
         candidate_lower = candidate.lower()
 
-        # Generate substrings of length 3-8 from target
         target_subs = set()
         for i in range(len(target_lower)):
             for j in range(i + 3, min(i + 9, len(target_lower) + 1)):
                 target_subs.add(target_lower[i:j])
 
-        # Count how many target substrings appear in candidate
         match_count = sum(1 for s in target_subs if s in candidate_lower)
 
-        # Base difflib ratio
         ratio = difflib.SequenceMatcher(None, target_lower, candidate_lower).ratio()
 
-        # Boost for substring matches (each match adds 0.12, capped at 0.5)
         boost = min(match_count * 0.12, 0.5)
         return ratio + boost
 
     def _find_best_match(self, quoted: str, candidates: list[str]) -> str | None:
-        """Find best match using custom scoring. Returns None if no decent match."""
         if not candidates:
             return None
         scored = [(c, self._score_match(quoted, c)) for c in candidates]
         scored.sort(key=lambda x: x[1], reverse=True)
         best, score = scored[0]
-        # Require a minimum combined score
         return best if score >= 0.35 else None
 
     @staticmethod
     def _get_node_context(cypher: str, pos: int) -> str | None:
-        """Look backwards from pos to detect :Variable or :Function context."""
         start = max(0, pos - 100)
         snippet = cypher[start:pos]
         if ':Variable' in snippet:
@@ -244,7 +226,6 @@ Example valid queries:
         return None
 
     def _validate_and_fix_names(self, cypher: str) -> tuple[str, list[dict]]:
-        """Check names in cypher against known entities and fuzzy-match if needed."""
         fixes = []
         corrected = cypher
         offset = 0
@@ -254,11 +235,8 @@ Example valid queries:
             quoted = m.group(2)
             if quoted in all_known:
                 continue
-            # Skip parameter placeholders and numbers
             if quoted.startswith('$') or quoted.replace('.', '', 1).replace('-', '', 1).isdigit():
                 continue
-            # Skip if quoted is a valid substring of any known name
-            # (e.g. 'freq' matches 'main:freq', 'getFreq:freq', etc.)
             quoted_lower = quoted.lower()
             if any(quoted_lower in k.lower() for k in all_known):
                 continue
@@ -275,7 +253,6 @@ Example valid queries:
                 best_match = self._find_best_match(quoted, self._known_functions)
                 match_type = "Function"
             else:
-                # Ambiguous context — try both, pick best score
                 best_var = self._find_best_match(quoted, self._known_variables)
                 best_func = self._find_best_match(quoted, self._known_functions)
                 if best_var and best_func:
@@ -316,15 +293,6 @@ Example valid queries:
         return corrected, fixes
 
     def translate(self, nl_query: str, auto_fix: bool = True) -> dict:
-        """Generate Cypher from natural language.
-
-        Returns a dict with keys:
-            cypher           – generated query string
-            corrected_cypher – auto-fixed query (if applicable)
-            valid            – bool, passed sanity checks
-            metadata         – latency, token usage, cost
-            fixes            – list of name corrections applied
-        """
         t0 = time.perf_counter()
         schema_context = self._build_schema_context()
         try:
@@ -359,10 +327,6 @@ Example valid queries:
         metadata: dict | None = None,
         link_functions: bool = True,
     ) -> dict:
-        """Persist a query pair to the NDJSON log and to Neo4j.
-
-        Returns the Neo4j node properties.
-        """
         ts = datetime.now(timezone.utc).isoformat()
         entry = {
             "timestamp": ts,
@@ -424,7 +388,6 @@ Example valid queries:
                 )
 
     def retrieve(self, limit: int = 50) -> list[dict]:
-        """Return recent stored queries from Neo4j, newest first."""
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -440,7 +403,6 @@ Example valid queries:
             return [dict(r["query"]) for r in result]
 
     def retrieve_by_function(self, function_name: str, limit: int = 20) -> list[dict]:
-        """Return queries that generated edges to a specific Function."""
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -456,7 +418,6 @@ Example valid queries:
             return [dict(r["query"]) for r in result]
 
     def stats(self) -> dict:
-        """Aggregate statistics from the local NDJSON log."""
         if not os.path.exists(QUERY_LOG_PATH):
             return {"total": 0, "ok": 0, "errors": 0, "avg_latency_ms": 0.0}
 

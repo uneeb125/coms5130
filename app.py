@@ -1,10 +1,3 @@
-"""
-ProjectDemo/app.py
-Flask web UI for the COM S 5130 Program Analysis project.
-Provides dashboards, NL-to-Cypher query interface, call-graph visualization,
-coverage reports, and function exploration over a Neo4j Code Property Graph.
-"""
-
 import os
 import sys
 import json
@@ -14,9 +7,6 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from neo4j import GraphDatabase
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 app = Flask(__name__)
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
@@ -27,9 +17,6 @@ PROJECT_ROOT = Path(__file__).parent
 QUERY_LOG_PATH = PROJECT_ROOT / "query_log.json"
 SCHEMA_PATH = PROJECT_ROOT / "neo4j_schema.json"
 
-# ---------------------------------------------------------------------------
-# Neo4j driver (lazy init)
-# ---------------------------------------------------------------------------
 _driver = None
 
 def get_driver():
@@ -39,9 +26,6 @@ def get_driver():
     return _driver
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 def run_cypher(query, parameters=None):
     parameters = parameters or {}
     try:
@@ -68,9 +52,6 @@ def load_query_log(limit=100):
     return entries[-limit:][::-1]
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
 @app.route("/")
 def index():
     show_system = request.args.get('system', '0') == '1'
@@ -124,7 +105,6 @@ def query_page():
 
 @app.route("/api/translate", methods=["POST"])
 def api_translate():
-    """Translate NL to Cypher using query_interface.QueryInterface."""
     data = request.get_json(force=True)
     nl_query = data.get("query", "").strip()
     if not nl_query:
@@ -148,7 +128,6 @@ def api_translate():
 
 @app.route("/api/execute", methods=["POST"])
 def api_execute():
-    """Execute a Cypher query against Neo4j and return tabular results."""
     data = request.get_json(force=True)
     cypher = data.get("cypher", "").strip()
     if not cypher:
@@ -160,7 +139,6 @@ def api_execute():
 
 @app.route("/api/store", methods=["POST"])
 def api_store():
-    """Store a NL+Cypher pair to Neo4j and local log."""
     data = request.get_json(force=True)
     nl = data.get("nl", "").strip()
     cypher = data.get("cypher", "").strip()
@@ -268,8 +246,5 @@ def api_function_detail(name):
     })
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

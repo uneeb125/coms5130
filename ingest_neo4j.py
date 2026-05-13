@@ -1,8 +1,3 @@
-"""
-ingest_neo4j.py
-Dynamically parses ProjectUpdate1/2 artifacts and ingests them into Neo4j.
-Parses: LLVM IR (.ll), gcov coverage, AFL++ fuzzer_stats, callgraph DOT, CFG DOTs.
-"""
 import os
 import re
 import json
@@ -22,11 +17,9 @@ CFG_DOT_DIR = BASE / "data/dot_files"
 
 
 class ArtifactParser:
-    """Parse static and dynamic analysis artifacts."""
 
     @staticmethod
     def parse_llvm_ir(path: Path):
-        """Parse LLVM IR to extract functions and instruction counts."""
         text = path.read_text()
         functions = []
 
@@ -145,7 +138,6 @@ class ArtifactParser:
 
     @staticmethod
     def parse_gcov(path: Path):
-        """Parse gcov file to extract per-function line and branch coverage."""
         text = path.read_text()
         coverage = {}
         func_re = re.compile(
@@ -185,7 +177,6 @@ class ArtifactParser:
 
     @staticmethod
     def parse_fuzzer_stats(path: Path):
-        """Parse AFL++ fuzzer_stats file."""
         stats = {}
         for line in path.read_text().splitlines():
             if ':' in line:
@@ -203,10 +194,8 @@ class ArtifactParser:
 
     @staticmethod
     def parse_callgraph_dot(path: Path):
-        """Parse callgraph DOT to extract caller->callee edges."""
         text = path.read_text()
         nodes = {}
-        # Capture node ID directly so edge lines don't confuse rfind
         node_re = re.compile(r'(Node0x[0-9a-fA-F]+)\s+\[shape=record,label="\{([^}]+)\}"\]')
         for m in node_re.finditer(text):
             node_id = m.group(1)
@@ -224,7 +213,6 @@ class ArtifactParser:
 
     @staticmethod
     def parse_cfg_dots(dot_dir: Path):
-        """Parse CFG DOT files to extract basic block flows per function."""
         flows = {}
         for dot_file in dot_dir.glob("*.dot"):
             if dot_file.name == "huffman.ll.callgraph.dot":
@@ -256,17 +244,8 @@ class ArtifactParser:
 
     @staticmethod
     def parse_source_variables(path: Path):
-        """
-        Parse C++ source to extract function parameters, local variables,
-        and call sites with argument bindings.
-        Returns:
-            func_params: dict[str, list[str]]
-            func_locals: dict[str, list[str]]
-            func_calls:  list[(caller, callee, arg_vars, ret_var)]
-        """
         text = path.read_text()
 
-        # --- 1. Extract function signatures ---
         func_sig_re = re.compile(
             r'^(.*?)\s+(\w+)\s*\(([^)]*)\)\s*\{',
             re.MULTILINE
@@ -278,14 +257,12 @@ class ArtifactParser:
 
         for m in func_sig_re.finditer(text):
             ret_type = m.group(1).strip()
-            # Skip constructors / initializer-list noise
             if '(' in ret_type or ':' in ret_type or ret_type in ('', 'struct', 'class'):
                 continue
             name = m.group(2)
             params_str = m.group(3).strip()
             params = []
             if params_str:
-                # Split on commas but respect angle brackets
                 depth = 0
                 current = ''
                 for ch in params_str:
@@ -302,7 +279,6 @@ class ArtifactParser:
                         current += ch
                 if current.strip():
                     params.append(current.strip())
-                # Extract last identifier from each parameter
                 def _param_name(p):
                     m = re.search(r'(\w+)(?:\[\])?\s*$', p.split('=')[0])
                     return m.group(1) if m else None
@@ -310,7 +286,6 @@ class ArtifactParser:
                 params = [n for n in (_param_name(p) for p in params) if n]
             func_params[name] = params
 
-            # Brace-match to find body end
             start = m.end() - 1
             brace_depth = 0
             pos = start
@@ -325,7 +300,6 @@ class ArtifactParser:
             func_body_start[name] = start
             func_body_end[name] = pos
 
-        # --- 2. Extract local variables ---
         var_decl_re = re.compile(
             r'^\s*(?!\s*(?:return|if|while|for|switch|case)\b)'
             r'([\w:]+(?:<[^>]*>)?(?:\s*\*\s*|\s*\&\s*|\s+))'
@@ -344,7 +318,6 @@ class ArtifactParser:
                     locals_.append(var_name)
             func_locals[name] = locals_
 
-        # --- 3. Extract function calls ---
         func_calls = []
         call_re = re.compile(r'(\w+)\s*=\s*(\w+)\s*\(([^)]*)\)\s*;')
         void_call_re = re.compile(r'(\w+)\s*\(([^)]*)\)\s*;')
@@ -372,23 +345,17 @@ class ArtifactParser:
 
     @staticmethod
     def compute_dataflow(func_params, func_locals, func_calls):
-        """
-        Build DEPENDS_ON edges from parsed source.
-        Variables are scoped as 'function:varname'.
-        """
         edges = []
 
         for caller, callee, arg_vars, ret_var in func_calls:
             callee_params = func_params.get(callee, [])
             for idx, arg in enumerate(arg_vars):
                 if idx < len(callee_params):
-                    # downstream (callee param) DEPENDS_ON upstream (caller arg)
                     downstream = f"{callee}:{callee_params[idx]}"
                     upstream = f"{caller}:{arg}"
                     edges.append((downstream, upstream))
 
             if ret_var:
-                # downstream (caller var) DEPENDS_ON upstream (callee return)
                 downstream = f"{caller}:{ret_var}"
                 upstream = f"{callee}:return"
                 edges.append((downstream, upstream))
@@ -422,21 +389,18 @@ class Neo4jIngestor:
 
     @staticmethod
     def _is_user_function(name: str) -> bool:
-        """Identify user-defined vs system (stdlib/compiler) functions."""
         if name == 'main':
             return True
-        # C++ mangled prefixes for user code in huffman.cpp
         user_prefixes = (
-            '_Z7getFreq',   # getFreq(string)
-            '_Z9buildTree', # buildTree(map)
-            '_Z6encode',    # encode(Node*, string, map&)
-            '_ZN4NodeC2',   # Node constructors
-            '_ZN7Compare',  # Compare::operator()
+            '_Z7getFreq',
+            '_Z9buildTree',
+            '_Z6encode',
+            '_ZN4NodeC2',
+            '_ZN7Compare',
         )
         return name.startswith(user_prefixes)
 
     def ingest_functions(self, functions, coverage, fuzzer_stats):
-        """Ingest Function nodes with merged static + dynamic metrics."""
         with self.driver.session() as session:
             for f in functions:
                 name = f['name']
@@ -497,7 +461,6 @@ class Neo4jIngestor:
             print(f"[DB] Ingested {len(functions)} Function nodes.")
 
     def ingest_basic_blocks_and_flows(self, flows):
-        """Ingest basic blocks and FLOWS_TO edges from CFG DOTs."""
         with self.driver.session() as session:
             count = 0
             for func_name, edges in flows.items():
@@ -533,7 +496,6 @@ class Neo4jIngestor:
             print(f"[DB] Ingested {count} BasicBlock nodes and FLOWS_TO edges from CFG DOTs.")
 
     def create_call_edges(self, call_edges):
-        """Create CALLS edges from callgraph DOT."""
         with self.driver.session() as session:
             created = 0
             for caller, callee in call_edges:
@@ -552,7 +514,6 @@ class Neo4jIngestor:
             print(f"[DB] Created {created} CALLS edges from callgraph.")
 
     def ingest_variables(self, func_params, func_locals):
-        """Ingest Variable nodes scoped per function."""
         with self.driver.session() as session:
             count = 0
             for func, params in func_params.items():
@@ -580,7 +541,6 @@ class Neo4jIngestor:
             print(f"[DB] Ingested {count} Variable nodes.")
 
     def create_variable_dependencies(self, dataflow_edges):
-        """Create DEPENDS_ON edges from computed data-flow analysis."""
         with self.driver.session() as session:
             for src, dst in dataflow_edges:
                 session.run(
@@ -595,7 +555,6 @@ class Neo4jIngestor:
 
 
 def export_schema_json(func_params=None, func_locals=None, path="neo4j_schema.json"):
-    # Build list of actual variable names for the query interface
     variables = []
     if func_params and func_locals:
         for func, params in func_params.items():
